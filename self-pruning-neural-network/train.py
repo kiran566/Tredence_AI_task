@@ -33,6 +33,11 @@ class PrunableLinear(nn.Module):
         output = x @ pruned_weights.T + self.bias
 
         return output
+    # Sparsity Loss = sum(all gate values)
+    def sparsity_loss(self):
+        gates = torch.sigmoid(self.gate_scores)
+        return gates.sum()
+
     
 # testing
 if __name__ == "__main__":
@@ -52,3 +57,44 @@ if __name__ == "__main__":
 
     print("\nGate values:")
     print(gates)
+        # Create a target
+    target = torch.randn(4, 2)
+
+    # Simple loss
+    loss_fn = nn.MSELoss()
+    loss = loss_fn(output, target)
+
+    print("\nLoss:", loss.item())
+
+    # Backpropagation
+    # # loss.backward()
+
+    # # Check gradients
+    # print("\nWeight gradient:")
+    # print(layer.weight.grad)
+
+    # print("\nGate scores gradient:")
+    # print(layer.gate_scores.grad)
+
+    # print("\nBias gradient:")
+    # print(layer.bias.grad)
+    sparsity = layer.sparsity_loss()
+    print("\nSparsity loss:", sparsity.item())
+    
+    # total losss with sparsity loss
+    lambda_value = 0.01
+    total_loss = loss + lambda_value * sparsity
+    print("\nClassification loss:", loss.item())
+    print("Sparsity loss:", sparsity.item())
+    print("Lambda:", lambda_value)
+    print("Total loss:", total_loss.item())
+    # then calculating total loss and backpropagating  
+    total_loss.backward()
+    print("\nWeight gradient:")
+    print(layer.weight.grad)
+    
+    print("\nGate score gradient:")
+    print(layer.gate_scores.grad)
+
+    print("\nBias gradient:")
+    print(layer.bias.grad)
