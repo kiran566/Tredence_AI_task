@@ -37,64 +37,53 @@ class PrunableLinear(nn.Module):
     def sparsity_loss(self):
         gates = torch.sigmoid(self.gate_scores)
         return gates.sum()
+# complete network
+class SelfPruningNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.fc1 = PrunableLinear(3 * 32 * 32, 512)
+        self.fc2 = PrunableLinear(512, 256)
+        self.fc3 = PrunableLinear(256, 10)
+
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        # Flatten image
+        x = x.view(x.size(0), -1)
+
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.fc3(x)
+
+        return x
+    def sparsity_loss(self):
+        return (
+            self.fc1.sparsity_loss()
+            + self.fc2.sparsity_loss()
+            + self.fc3.sparsity_loss()
+        )
 
     
 # testing
 if __name__ == "__main__":
 
-    layer = PrunableLinear(3, 2)
+    model = SelfPruningNetwork()
 
-    x = torch.randn(4, 3)
+    # Fake CIFAR-10 batch
+    x = torch.randn(4, 3, 32, 32)
 
-    output = layer(x)
+    output = model(x)
 
     print("Input shape:", x.shape)
-    print("Weight shape:", layer.weight.shape)
-    print("Gate scores shape:", layer.gate_scores.shape)
     print("Output shape:", output.shape)
 
-    gates = torch.sigmoid(layer.gate_scores)
+    sparsity = model.sparsity_loss()
 
-    print("\nGate values:")
-    print(gates)
-        # Create a target
-    target = torch.randn(4, 2)
-
-    # Simple loss
-    loss_fn = nn.MSELoss()
-    loss = loss_fn(output, target)
-
-    print("\nLoss:", loss.item())
-
-    # Backpropagation
-    # # loss.backward()
-
-    # # Check gradients
-    # print("\nWeight gradient:")
-    # print(layer.weight.grad)
-
-    # print("\nGate scores gradient:")
-    # print(layer.gate_scores.grad)
-
-    # print("\nBias gradient:")
-    # print(layer.bias.grad)
-    sparsity = layer.sparsity_loss()
-    print("\nSparsity loss:", sparsity.item())
-    
-    # total losss with sparsity loss
-    lambda_value = 0.01
-    total_loss = loss + lambda_value * sparsity
-    print("\nClassification loss:", loss.item())
     print("Sparsity loss:", sparsity.item())
-    print("Lambda:", lambda_value)
-    print("Total loss:", total_loss.item())
-    # then calculating total loss and backpropagating  
-    total_loss.backward()
-    print("\nWeight gradient:")
-    print(layer.weight.grad)
-    
-    print("\nGate score gradient:")
-    print(layer.gate_scores.grad)
 
-    print("\nBias gradient:")
-    print(layer.bias.grad)
+    # Check all parameters
+    print("\nModel parameters:")
+
+    for name, parameter in model.named_parameters():
+        print(name, parameter.shape, parameter.requires_grad)
