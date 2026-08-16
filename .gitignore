@@ -1,1 +1,8 @@
 aitask/
+# Untrack all .pth checkpoint files from Git index
+*.pth
+*.pt
+results/*.pth
+data/
+*.tar.gz
+__pycache__/
